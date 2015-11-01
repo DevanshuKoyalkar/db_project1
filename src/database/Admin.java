@@ -6,7 +6,7 @@ import java.text.ParseException;
 import java.util.*;
 
 public class Admin {
-	public static void updatePending(String request_id, String option){
+	public static void updatePending(String request_id, String option) throws ParseException{
 		Connection connection=null;
 		try{
 			connection=getConnection();
@@ -19,30 +19,32 @@ public class Admin {
 				ResultSet rs= pstmt.executeQuery();
 			}
 			else{
-				System.out.println("Came till first");
+			
 				//update the row and remove rows which are interfering
 				//update pending set status='accepted' where request_id=request_id
 				PreparedStatement pstmt1=
 				connection.prepareStatement("update pending set status='accepted' where request_id=?");
 				pstmt1.setString(1, request_id);
 				
-				System.out.println("Came till first update");
+				
 				pstmt1.executeUpdate();
 				PreparedStatement pstmt2=
 				connection.prepareStatement("select request_type, company_id, object_id, book_start,book_end from pending where request_id=?");
 				pstmt2.setString(1, request_id);
 				
-				System.out.println("Came till second update");
-				ResultSet rs= pstmt2.executeQuery();
-				System.out.println("Came after second update");
 				
+				ResultSet rs= pstmt2.executeQuery();
+				
+				System.out.println("Came This  check point");
 				
 				while(rs.next()){
 					
 					String request_type = rs.getString(1);
 					String company_id = rs.getString(2);
 					String object_id = rs.getString(3);
-					System.out.println("Came before 3rd update");
+					
+					System.out.println(company_id+"   "+object_id);
+				
 					
 					
 					if( request_type.equalsIgnoreCase("shop")){
@@ -52,6 +54,7 @@ public class Admin {
 						pstmt3.setString(2, company_id);
 						pstmt3.setDate(3,rs.getDate(4));
 						pstmt3.setDate(4, rs.getDate(5));
+						System.out.println(pstmt3);
 						pstmt3.executeUpdate();
 						
 					}
@@ -63,6 +66,7 @@ public class Admin {
 						pstmt3.setString(2, company_id);
 						pstmt3.setDate(3,rs.getDate(4));
 						pstmt3.setDate(4, rs.getDate(5));
+						System.out.println(pstmt3);
 						pstmt3.executeUpdate();
 						
 					}
@@ -74,7 +78,9 @@ public class Admin {
 						pstmt3.setString(2, company_id);
 						pstmt3.setDate(3,rs.getDate(4));
 						pstmt3.setDate(4, rs.getDate(5));
+						System.out.println(pstmt3);
 						pstmt3.executeUpdate();
+						
 					}
 					
 					
@@ -84,12 +90,24 @@ public class Admin {
 						
 			}
 			
+			
+			System.out.println("Came till date clash");
 			PreparedStatement pstmt4 = connection.prepareStatement("select * from pending where status = 'pending'");
 			ResultSet rs = pstmt4.executeQuery();
+			System.out.println("After the first query execution");
 			
 			while(rs.next()){
-				String request_type =  rs.getString(2);
-				checkDateAtAdmin(rs);
+				boolean dateCheck = checkDateAtAdmin(rs,connection);
+				if(dateCheck == false){
+					System.out.println("DateClash at Admin accepting the request");
+					String requestID = rs.getString(1);
+					PreparedStatement pstmt=
+							connection.prepareStatement("update pending set status='rejected' where request_id=?");
+							pstmt.setString(1, requestID);
+							pstmt.executeUpdate();
+					
+					
+				}
 			}
 			
 			
@@ -108,6 +126,11 @@ public class Admin {
 		boolean ret  = true;
 		
 		String option = rs.getString(2);
+		String obj_id = rs.getString(6);
+		java.sql.Date  startDate = rs.getDate(7);
+		java.sql.Date  endDate = rs.getDate(8);
+		
+		
 		
 		if(option.equalsIgnoreCase("gate")){
 			System.out.println("entered the loop");
@@ -123,16 +146,16 @@ public class Admin {
 			pstmt.setDate(6, startDate);
 			pstmt.setDate(7, endDate);
 			System.out.println(pstmt);
-			ResultSet rs = pstmt.executeQuery();
-			System.out.println("After query");
-			while(rs.next()){
+			ResultSet rs2 = pstmt.executeQuery();
+			System.out.println(pstmt);
+			while(rs2.next()){
 				ret = false;
 			}
 			System.out.println(ret);
 		
 			}
 		
-		if(option.equalsIgnoreCase("warehouse")){
+		else if(option.equalsIgnoreCase("warehouse")){
 			PreparedStatement pstmt = connection.prepareStatement("select book_start, book_end from warehouse_booking "
 					+ " where warehouse_id =? and (( book_start <= ? and book_end >= ?) or "
 					+ " (book_start <= ? and book_end >= ?) or "
@@ -144,13 +167,36 @@ public class Admin {
 			pstmt.setDate(5, endDate);
 			pstmt.setDate(6, startDate);
 			pstmt.setDate(7, endDate);
-			ResultSet rs = pstmt.executeQuery();
+			ResultSet rs2 = pstmt.executeQuery();
 			
-			while(rs.next()){
+			while(rs2.next()){
 				ret = false;
 			}
 		
 			}
+		
+		else if(option.equalsIgnoreCase("shop")){
+			PreparedStatement pstmt = connection.prepareStatement("select book_start, book_end from shop_booking "
+					+ " where shop_id = ?  and (( book_start <= ? and book_end >= ?) or "
+					+ " (book_start <= ? and book_end >= ?) or "
+					+ " (book_start >= ? and book_end <= ?)) ");
+			pstmt.setString(1, obj_id);
+			pstmt.setDate(2, startDate);
+			pstmt.setDate(3, startDate);
+			pstmt.setDate(4, endDate);
+			pstmt.setDate(5, endDate);
+			pstmt.setDate(6, startDate);
+			pstmt.setDate(7, endDate);
+			System.out.println(pstmt);
+			ResultSet rs2 = pstmt.executeQuery();
+			System.out.println("After query");
+			while(rs2.next()){
+				ret = false;
+			}
+			System.out.println(ret);
+		}
+		
+		
 		
 		return ret;
 	}

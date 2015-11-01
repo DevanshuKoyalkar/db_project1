@@ -17,6 +17,7 @@ table,th,td{
 <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
 <title>Welcome Admin</title>
 <h1>Welcome Admin</h1>
+<a href="home.jsp">click here to logout</a>
 </head>
 <body>
 <div class="table-responsive">

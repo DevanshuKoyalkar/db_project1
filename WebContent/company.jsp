@@ -25,6 +25,7 @@ table,td,th{
 
 <title>Welcome Company</title>
 <h1>Welcome Company</h1>
+<a href="home.jsp">click here to logout</a>
 </head>
 <body>
 Your Shop bookings are as follows<br>
